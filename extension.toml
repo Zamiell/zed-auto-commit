@@ -1,6 +1,6 @@
 id = "auto-commit"
 name = "Auto Commit"
-description = "Automatically creates local Git snapshot commits at a configurable interval"
+description = "Automatically creates and pushes Git snapshot commits at a configurable interval"
 version = "0.1.0"
 schema_version = 1
 authors = ["Zamiell <5511220+Zamiell@users.noreply.github.com>"]
@@ -8,4 +8,3 @@ repository = "https://github.com/Zamiell/zed-auto-commit"
 
 [context_servers.auto-commit]
 name = "Auto Commit"
-

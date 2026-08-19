@@ -1,7 +1,7 @@
 # Auto Commit for Zed
 
-Auto Commit creates local Git snapshot commits for the project open in Zed. The default interval is
-five seconds. It does not push.
+Auto Commit creates Git snapshot commits for the project open in Zed and pushes them to the current
+branch's configured upstream. The default interval is five seconds.
 
 Zed does not expose timers or save hooks to extensions, so Auto Commit runs as a lightweight MCP
 server. Enabling the server starts the commit loop; disabling it stops the loop.
@@ -30,8 +30,8 @@ The settings are:
 ```
 
 Automatic commits skip empty repositories and active merges, rebases, cherry-picks, reverts, and
-bisections. Commit signing and Git hooks are disabled for snapshot commits to prevent interactive
-commands from hanging the background server.
+bisections. Commit signing and Git hooks are disabled for snapshot commits, and pushes cannot prompt
+for credentials. The extension never pulls, rebases, force-pushes, or guesses an upstream branch.
 
 ## Requirements
 
@@ -44,4 +44,3 @@ commands from hanging the background server.
 ```sh
 python3 -m unittest discover -s tests -v
 ```
-

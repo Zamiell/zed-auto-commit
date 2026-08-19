@@ -2,7 +2,7 @@ use schemars::JsonSchema;
 use serde::Deserialize;
 use zed::settings::ContextServerSettings;
 use zed_extension_api::{
-    self as zed, serde_json, Command, ContextServerConfiguration, ContextServerId, Project, Result,
+    self as zed, Command, ContextServerConfiguration, ContextServerId, Project, Result, serde_json,
 };
 
 fn default_enabled() -> bool {

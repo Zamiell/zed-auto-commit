@@ -32,6 +32,7 @@ class AutoCommitter:
         self.include_untracked = include_untracked
         self.enabled = enabled
         self.last_commit: str | None = None
+        self.last_push: str | None = None
         self.last_error: str | None = None
         self._state_lock = threading.Lock()
         self._stop = threading.Event()
@@ -42,14 +43,22 @@ class AutoCommitter:
     def _git(self, *args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
         if self._repository_root is None:
             raise RuntimeError(f"{self.cwd} is not inside a Git repository")
-        return subprocess.run(
+        env = os.environ.copy()
+        env["GIT_TERMINAL_PROMPT"] = "0"
+        env["GCM_INTERACTIVE"] = "Never"
+        result = subprocess.run(
             ["git", *args],
             cwd=self._repository_root,
-            check=check,
+            check=False,
             capture_output=True,
             text=True,
             timeout=30,
+            env=env,
         )
+        if check and result.returncode != 0:
+            details = result.stderr.strip() or result.stdout.strip() or "unknown error"
+            raise RuntimeError(f"`git {args[0]}` failed: {details}")
+        return result
 
     def _find_repository_root(self) -> Path | None:
         try:
@@ -106,6 +115,36 @@ class AutoCommitter:
             self._instance_lock_file.close()
             self._instance_lock_file = None
 
+    def _push_if_ahead(self) -> str | None:
+        if self._git("rev-parse", "--verify", "HEAD", check=False).returncode != 0:
+            return None
+
+        upstream_result = self._git(
+            "rev-parse",
+            "--abbrev-ref",
+            "--symbolic-full-name",
+            "@{upstream}",
+            check=False,
+        )
+        if upstream_result.returncode != 0:
+            raise RuntimeError(
+                "cannot push: the current branch has no upstream; configure one with "
+                "`git push --set-upstream <remote> <branch>`"
+            )
+
+        upstream = upstream_result.stdout.strip()
+        ahead = int(self._git("rev-list", "--count", f"{upstream}..HEAD").stdout.strip())
+        if ahead == 0:
+            return None
+
+        result = self._git("push", "--porcelain")
+        destination = result.stderr.strip().splitlines()
+        summary = f"Pushed {ahead} commit{'s' if ahead != 1 else ''} to {upstream}"
+        if destination:
+            summary = f"{summary} ({destination[-1]})"
+        self.last_push = summary
+        return summary
+
     def commit_once(self) -> str:
         with self._state_lock:
             if self._repository_root is None:
@@ -118,25 +157,27 @@ class AutoCommitter:
             status_args = ["status", "--porcelain=v1"]
             if not self.include_untracked:
                 status_args.append("--untracked-files=no")
-            if not self._git(*status_args).stdout:
-                return "No changes to commit"
+            commit_summary = None
+            if self._git(*status_args).stdout:
+                self._git("add", "-A" if self.include_untracked else "-u")
+                if self._git("diff", "--cached", "--quiet", check=False).returncode != 0:
+                    result = self._git(
+                        "-c",
+                        "commit.gpgSign=false",
+                        "commit",
+                        "--no-verify",
+                        "-m",
+                        self.message,
+                    )
+                    commit_summary = result.stdout.strip().splitlines()[0]
+                    self.last_commit = commit_summary
 
-            self._git("add", "-A" if self.include_untracked else "-u")
-            if self._git("diff", "--cached", "--quiet", check=False).returncode == 0:
-                return "No changes to commit"
-
-            result = self._git(
-                "-c",
-                "commit.gpgSign=false",
-                "commit",
-                "--no-verify",
-                "-m",
-                self.message,
-            )
-            summary = result.stdout.strip().splitlines()[0]
-            self.last_commit = summary
+            push_summary = self._push_if_ahead()
             self.last_error = None
-            return summary
+            summaries = [
+                summary for summary in (commit_summary, push_summary) if summary is not None
+            ]
+            return "; ".join(summaries) if summaries else "No changes to commit or push"
 
     def run(self) -> None:
         while not self._stop.wait(self.interval_seconds):
@@ -144,7 +185,7 @@ class AutoCommitter:
                 continue
             try:
                 result = self.commit_once()
-                if result != "No changes to commit":
+                if result != "No changes to commit or push":
                     print(f"Auto Commit: {result}", file=sys.stderr, flush=True)
             except Exception as error:
                 self.last_error = str(error)
@@ -159,6 +200,7 @@ class AutoCommitter:
             ),
             "include_untracked": self.include_untracked,
             "last_commit": self.last_commit,
+            "last_push": self.last_push,
             "last_error": self.last_error,
         }
 
@@ -210,7 +252,7 @@ class McpServer:
                         },
                         {
                             "name": "commit_now",
-                            "description": "Create a snapshot commit immediately",
+                            "description": "Create and push a snapshot commit immediately",
                             "inputSchema": {"type": "object", "properties": {}},
                         },
                         {
