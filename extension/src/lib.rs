@@ -8,7 +8,7 @@ use zed_extension_api::{
     Result, serde_json,
 };
 
-const SERVER_VERSION: &str = "0.1.0";
+const SERVER_REVISION: &str = "a3a0d40";
 const SERVER_PATH: &str = "auto_commit_mcp.py";
 
 fn default_enabled() -> bool {
@@ -80,7 +80,7 @@ impl zed::Extension for AutoCommitExtension {
             .join(SERVER_PATH);
         if !server_path.is_file() {
             let download_url = format!(
-                "https://github.com/Zamiell/zed-auto-commit/releases/download/v{SERVER_VERSION}/{SERVER_PATH}"
+                "https://raw.githubusercontent.com/Zamiell/zed-auto-commit/{SERVER_REVISION}/server/{SERVER_PATH}"
             );
             zed::download_file(&download_url, SERVER_PATH, DownloadedFileType::Uncompressed)?;
         }
