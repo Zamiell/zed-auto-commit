@@ -1,4 +1,5 @@
 /target/
+/extension/target/
+/extension/extension.wasm
 __pycache__/
 *.pyc
-

@@ -1,9 +1,15 @@
+use std::env;
+
 use schemars::JsonSchema;
 use serde::Deserialize;
 use zed::settings::ContextServerSettings;
 use zed_extension_api::{
-    self as zed, Command, ContextServerConfiguration, ContextServerId, Project, Result, serde_json,
+    self as zed, Command, ContextServerConfiguration, ContextServerId, DownloadedFileType, Project,
+    Result, serde_json,
 };
+
+const SERVER_VERSION: &str = "0.1.0";
+const SERVER_PATH: &str = "auto_commit_mcp.py";
 
 fn default_enabled() -> bool {
     true
@@ -69,9 +75,19 @@ impl zed::Extension for AutoCommitExtension {
             return Err("Auto Commit's commit_message must not be empty".to_string());
         }
 
+        let server_path = env::current_dir()
+            .map_err(|error| error.to_string())?
+            .join(SERVER_PATH);
+        if !server_path.is_file() {
+            let download_url = format!(
+                "https://github.com/Zamiell/zed-auto-commit/releases/download/v{SERVER_VERSION}/{SERVER_PATH}"
+            );
+            zed::download_file(&download_url, SERVER_PATH, DownloadedFileType::Uncompressed)?;
+        }
+
         Ok(Command {
-            command: "server/auto_commit_mcp.py".to_string(),
-            args: Vec::new(),
+            command: "python3".to_string(),
+            args: vec![server_path.to_string_lossy().to_string()],
             env: vec![
                 (
                     "ZED_AUTO_COMMIT_ENABLED".to_string(),

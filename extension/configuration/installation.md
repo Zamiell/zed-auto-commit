@@ -11,3 +11,4 @@ branch's configured upstream.
 - Disable the server or set `enabled` to `false` before rebasing or otherwise rewriting history.
 
 This extension currently supports Linux, WSL, and macOS.
+Python 3 and Git must be available in the project environment.

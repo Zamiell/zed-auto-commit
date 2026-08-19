@@ -12,3 +12,6 @@ crate-type = ["cdylib"] # Required for Zed extensions.
 schemars = "1.2.2"
 serde = { version = "1", features = ["derive"] }
 zed_extension_api = "0.7.0"
+
+[profile.dev]
+incremental = false

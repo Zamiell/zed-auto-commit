@@ -8,14 +8,8 @@ server. Enabling the server starts the commit loop; disabling it stops the loop.
 
 ## Install for development
 
-1. Make the server executable:
-
-   ```sh
-   chmod +x server/auto_commit_mcp.py
-   ```
-
-2. In Zed, run `zed: install dev extension` and select this repository.
-3. Open **Settings > AI > MCP Servers**, install or enable **Auto Commit**, and confirm its status
+1. In Zed, run `zed: install dev extension` and select the `extension` directory in this repository.
+2. Open **Settings > AI > MCP Servers**, install or enable **Auto Commit**, and confirm its status
    indicator is green.
 
 The settings are:
