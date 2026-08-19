@@ -1,0 +1,15 @@
+[package]
+name = "zed_auto_commit"
+version = "0.1.0"
+edition = "2021"
+publish = false
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+schemars = "0.8"
+serde = { version = "1", features = ["derive"] }
+zed_extension_api = "0.7.0"
+
